@@ -17,17 +17,26 @@ func (i *Item) String() string {
   return i.Title
 }
 
-func loadItem(item string) (*Item, error) {
+func loadItem(key string) (*Item, error) {
   c, err := redis.Dial("tcp", ":6379")
   if err != nil {
     return nil, err
   }
 
-  reply, err := c.Do("HGETALL", item)
+  reply, err := redis.Values(c.Do("HGETALL", key))
   if err != nil {
     return nil, err
   }
-  return reply.(*Item), nil
+
+  item := &Item{}
+  err = redis.ScanStruct(reply, item)
+  if err != nil {
+    return nil, err
+  }
+  //TODO handle empty return value
+
+  log.Printf("Item found: %v", item)
+  return item, nil
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
