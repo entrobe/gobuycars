@@ -5,6 +5,7 @@ import (
   "fmt"
   "github.com/garyburd/redigo/redis"
   "log"
+  "errors"
 )
 
 type Item struct {
@@ -27,15 +28,15 @@ func loadItem(key string) (*Item, error) {
   if err != nil {
     return nil, err
   }
+  if len(reply) == 0 {
+    return nil, errors.New("No Item Found")
+  }
 
   item := &Item{}
   err = redis.ScanStruct(reply, item)
   if err != nil {
     return nil, err
   }
-  //TODO handle empty return value
-
-  log.Printf("Item found: %v", item)
   return item, nil
 }
 
@@ -44,7 +45,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
   i, err := loadItem(item)
   if err != nil {
     log.Print(err)
-    http.Error(w, err.Error(), http.StatusInternalServerError)
+    http.NotFound(w, r)
     return
   }
   fmt.Fprintf(w, "%s", i)
